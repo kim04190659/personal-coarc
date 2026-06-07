@@ -68,6 +68,22 @@ export default function CheckIn() {
     <main className="min-h-screen bg-[#1a1a2e] flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
 
+        {/* 家族連絡記録へのナビゲーション（2ボタン横並び） */}
+        <div className="flex gap-2 mb-3">
+          <button
+            onClick={() => router.push('/record/yumiko')}
+            className="flex-1 py-3 rounded-xl text-xs font-medium bg-[#1e1a2e] text-purple-400 border border-purple-900 hover:border-purple-600 transition-all text-center"
+          >
+            👵 ゆみこの記録
+          </button>
+          <button
+            onClick={() => router.push('/record/mieko')}
+            className="flex-1 py-3 rounded-xl text-xs font-medium bg-[#1a1520] text-pink-400 border border-pink-900 hover:border-pink-600 transition-all text-center"
+          >
+            👵 みえこの記録
+          </button>
+        </div>
+
         {/* 朝のブリーフィングへのナビゲーション */}
         <button
           onClick={() => router.push('/morning')}
