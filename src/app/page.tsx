@@ -50,7 +50,8 @@ export default function CheckIn() {
       const data = await res.json();
 
       // 次の画面で使うためにlocalStorageに保存
-      localStorage.setItem('checkin_summary', JSON.stringify(data));
+      // userInputも一緒に保存しておく（Notion記録時に必要）
+      localStorage.setItem('checkin_summary', JSON.stringify({ ...data, userInput: input }));
       localStorage.setItem('checkin_context', selectedContext);
 
       // サマリー画面へ移動
