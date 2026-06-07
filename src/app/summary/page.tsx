@@ -6,7 +6,15 @@ import { useRouter } from 'next/navigation';
 export default function Summary() {
   // Claudeのサマリーテキスト
   const [summary, setSummary] = useState('');
+  const [context, setContext] = useState('');
+  const [userInput, setUserInput] = useState('');
   const [loading, setLoading] = useState(true);
+
+  // Notion記録ボタンの状態管理
+  const [notionSaving, setNotionSaving] = useState(false); // 送信中
+  const [notionSaved, setNotionSaved] = useState(false);   // 記録済み
+  const [notionError, setNotionError] = useState('');      // エラーメッセージ
+
   const router = useRouter();
 
   useEffect(() => {
@@ -20,8 +28,51 @@ export default function Summary() {
 
     const parsed = JSON.parse(data);
     setSummary(parsed.summary || '');
+    setUserInput(parsed.userInput || '');
+
+    // コンテキストも取得（Notion記録に使う）
+    setContext(localStorage.getItem('checkin_context') || '');
+
+    // 今日分をすでにNotionに記録済みか確認
+    const today = new Date().toLocaleDateString('ja-JP');
+    const savedDate = localStorage.getItem('checkin_notion_saved_date');
+    if (savedDate === today) {
+      setNotionSaved(true);
+    }
+
     setLoading(false);
   }, [router]);
+
+  // 「Notionに記録する」ボタンを押したとき
+  const handleNotionSave = async () => {
+    setNotionSaving(true);
+    setNotionError('');
+    try {
+      const res = await fetch('/api/notion-log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: '帰宅前チェックイン',
+          context,
+          userInput,
+          summary,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || '記録に失敗しました');
+      }
+      // 記録済みフラグをlocalStorageに保存（二重送信を防ぐ）
+      const today = new Date().toLocaleDateString('ja-JP');
+      localStorage.setItem('checkin_notion_saved_date', today);
+      setNotionSaved(true);
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : '記録に失敗しました';
+      setNotionError(message);
+    } finally {
+      setNotionSaving(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -85,6 +136,30 @@ export default function Summary() {
             <p className="text-gray-400 text-xs mt-1">目を合わせて</p>
           </div>
         </div>
+
+        {/* Notionに記録するボタン */}
+        <button
+          onClick={handleNotionSave}
+          disabled={notionSaved || notionSaving}
+          className={`w-full py-3 rounded-full text-sm font-medium mb-3 transition-all ${
+            notionSaved
+              ? 'bg-green-900 text-green-400 cursor-default'      // 記録済み
+              : notionSaving
+              ? 'bg-gray-700 text-gray-500 cursor-wait'            // 送信中
+              : 'bg-[#0f3460] text-blue-300 hover:bg-blue-900'     // 通常
+          }`}
+        >
+          {notionSaved
+            ? '✓ Notionに記録しました'
+            : notionSaving
+            ? '記録中...'
+            : '📝 Notionに記録する'}
+        </button>
+
+        {/* エラーメッセージ */}
+        {notionError && (
+          <p className="text-red-400 text-xs text-center mb-3">{notionError}</p>
+        )}
 
         {/* 完了ボタン */}
         <button

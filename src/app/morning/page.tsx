@@ -21,6 +21,11 @@ export default function Morning() {
   const [summary, setSummary] = useState('');
   const [showSummary, setShowSummary] = useState(false);
 
+  // Notion記録ボタンの状態管理
+  const [notionSaving, setNotionSaving] = useState(false); // 送信中
+  const [notionSaved, setNotionSaved] = useState(false);   // 記録済み
+  const [notionError, setNotionError] = useState('');      // エラーメッセージ
+
   const router = useRouter();
 
   // ページを開いたとき、今日の朝のブリーフィングがすでに保存されていれば表示する
@@ -32,8 +37,15 @@ export default function Morning() {
       // 今日分だけ復元する（日付が違えば無視）
       if (parsed.date === today && parsed.summary) {
         setSummary(parsed.summary);
+        setInput(parsed.userInput || '');
+        setSelectedContext(parsed.context || 'nec');
         setShowSummary(true);
       }
+    }
+    // 今日分をすでにNotionに記録済みか確認
+    const savedDate = localStorage.getItem('morning_notion_saved_date');
+    if (savedDate === today) {
+      setNotionSaved(true);
     }
   }, []);
 
@@ -57,6 +69,7 @@ export default function Morning() {
       localStorage.setItem('morning_brief', JSON.stringify({
         date: today,
         context: selectedContext,
+        userInput: input,
         summary: summaryText,
       }));
 
@@ -67,6 +80,37 @@ export default function Morning() {
       alert('エラーが発生しました。もう一度試してください。');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // 「Notionに記録する」ボタンを押したとき
+  const handleNotionSave = async () => {
+    setNotionSaving(true);
+    setNotionError('');
+    try {
+      const res = await fetch('/api/notion-log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: '朝のブリーフィング',
+          context: selectedContext,
+          userInput: input,
+          summary,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || '記録に失敗しました');
+      }
+      // 記録済みフラグをlocalStorageに保存（二重送信を防ぐ）
+      const today = new Date().toLocaleDateString('ja-JP');
+      localStorage.setItem('morning_notion_saved_date', today);
+      setNotionSaved(true);
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : '記録に失敗しました';
+      setNotionError(message);
+    } finally {
+      setNotionSaving(false);
     }
   };
 
@@ -141,6 +185,30 @@ export default function Morning() {
                 <p className="text-gray-400 text-xs mt-1">目を合わせて</p>
               </div>
             </div>
+
+            {/* Notionに記録するボタン */}
+            <button
+              onClick={handleNotionSave}
+              disabled={notionSaved || notionSaving}
+              className={`w-full py-3 rounded-full text-sm font-medium mb-3 transition-all ${
+                notionSaved
+                  ? 'bg-green-900 text-green-400 cursor-default'
+                  : notionSaving
+                  ? 'bg-gray-700 text-gray-500 cursor-wait'
+                  : 'bg-[#0f3020] text-green-300 hover:bg-green-900'
+              }`}
+            >
+              {notionSaved
+                ? '✓ Notionに記録しました'
+                : notionSaving
+                ? '記録中...'
+                : '📝 Notionに記録する'}
+            </button>
+
+            {/* エラーメッセージ */}
+            {notionError && (
+              <p className="text-red-400 text-xs text-center mb-3">{notionError}</p>
+            )}
 
             {/* やり直しボタン */}
             <button
