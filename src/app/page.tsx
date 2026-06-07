@@ -1,65 +1,106 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+
+// 5つの所属コンテキスト
+const CONTEXTS = [
+  { id: 'nec',    label: '🏢 NEC',    active: 'bg-blue-600 text-white border-transparent' },
+  { id: 'family', label: '🏠 家族',   active: 'bg-pink-600 text-white border-transparent' },
+  { id: 'dev',    label: '💻 開発',   active: 'bg-purple-600 text-white border-transparent' },
+  { id: 'alumni', label: '🎓 同窓会', active: 'bg-green-600 text-white border-transparent' },
+  { id: 'local',  label: '🌏 地域',   active: 'bg-orange-600 text-white border-transparent' },
+];
+
+export default function CheckIn() {
+  // 選択中のコンテキスト（最初はNEC）
+  const [selectedContext, setSelectedContext] = useState('nec');
+  // 入力テキスト
+  const [input, setInput] = useState('');
+  // 送信中フラグ（ボタンの二重クリック防止）
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
+
+  // 「家族モードに切り替える」ボタンを押したとき
+  const handleSubmit = async () => {
+    if (!input.trim()) return;
+    setLoading(true);
+
+    try {
+      // /api/checkin にPOSTしてClaudeのサマリーを取得
+      const res = await fetch('/api/checkin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ context: selectedContext, userInput: input }),
+      });
+      const data = await res.json();
+
+      // 次の画面で使うためにlocalStorageに保存
+      localStorage.setItem('checkin_summary', JSON.stringify(data));
+      localStorage.setItem('checkin_context', selectedContext);
+
+      // サマリー画面へ移動
+      router.push('/summary');
+    } catch (e) {
+      console.error('エラーが発生しました:', e);
+      alert('エラーが発生しました。もう一度試してください。');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <main className="min-h-screen bg-[#1a1a2e] flex items-center justify-center p-4">
+      <div className="w-full max-w-sm">
+
+        {/* ヘッダー */}
+        <div className="text-center mb-8">
+          <div className="text-4xl mb-3">🌇</div>
+          <h1 className="text-white text-xl font-bold">帰宅前チェックイン</h1>
+          <p className="text-gray-400 text-sm mt-1">仕事を置いて、家族モードへ</p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        {/* 所属コンテキスト選択 */}
+        <div className="mb-6">
+          <p className="text-gray-400 text-xs mb-2">今日の所属コンテキスト</p>
+          <div className="flex flex-wrap gap-2">
+            {CONTEXTS.map((ctx) => (
+              <button
+                key={ctx.id}
+                onClick={() => setSelectedContext(ctx.id)}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                  selectedContext === ctx.id
+                    ? ctx.active
+                    : 'border-gray-600 text-gray-400 bg-transparent hover:border-gray-400'
+                }`}
+              >
+                {ctx.label}
+              </button>
+            ))}
+          </div>
         </div>
-      </main>
-    </div>
+
+        {/* 今日の仕事の重さ入力 */}
+        <div className="mb-6">
+          <p className="text-gray-400 text-xs mb-2">今日の仕事、一言で言うと？</p>
+          <textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="例：経営会議が長引いて消耗した..."
+            rows={4}
+            className="w-full bg-[#0f3460] text-gray-200 rounded-xl p-3 text-sm resize-none border border-[#1e4080] focus:outline-none focus:border-blue-500 placeholder-gray-600"
+          />
+        </div>
+
+        {/* 送信ボタン */}
+        <button
+          onClick={handleSubmit}
+          disabled={!input.trim() || loading}
+          className="w-full bg-pink-600 hover:bg-pink-700 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white font-bold py-4 rounded-full transition-all text-sm"
+        >
+          {loading ? '切り替え中...' : '家族モードに切り替える →'}
+        </button>
+      </div>
+    </main>
   );
 }
