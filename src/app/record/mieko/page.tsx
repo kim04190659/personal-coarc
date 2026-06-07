@@ -20,6 +20,10 @@ export default function MiekoRecord() {
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
   const [pastRecords, setPastRecords] = useState<Record[]>([]);
+
+  // AIアドバイスの状態管理（記録保存後に自動生成）
+  const [advice, setAdvice] = useState('');
+  const [loadingAdvice, setLoadingAdvice] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -62,6 +66,25 @@ export default function MiekoRecord() {
       setSaved(true);
       setCondition('');
       setNextPlan('');
+
+      // Notion保存成功後にClaudeのアドバイスを非同期で取得する
+      setLoadingAdvice(true);
+      const pastConditions = existing.slice(1, 3).map((r: Record) => r.condition);
+      fetch('/api/family-advice', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          target: 'みえこ（義母）',
+          method,
+          condition: newRecord.condition,
+          nextPlan,
+          pastConditions,
+        }),
+      })
+        .then(r => r.json())
+        .then(d => { if (d.advice) setAdvice(d.advice); })
+        .catch(() => {})
+        .finally(() => setLoadingAdvice(false));
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : '記録に失敗しました';
       setError(message);
@@ -128,9 +151,23 @@ export default function MiekoRecord() {
 
         {/* 保存ボタン */}
         {saved ? (
-          <div className="bg-pink-900 rounded-full py-4 text-center text-pink-300 text-sm font-medium mb-3">
-            ✓ Notionに記録しました
-          </div>
+          <>
+            <div className="bg-pink-900 rounded-full py-4 text-center text-pink-300 text-sm font-medium mb-3">
+              ✓ Notionに記録しました
+            </div>
+            {/* AIアドバイスカード */}
+            {loadingAdvice && (
+              <div className="bg-[#2a1a20] border border-pink-900 rounded-xl p-3 mb-3">
+                <p className="text-pink-400 text-xs">💡 Claudeが考え中...</p>
+              </div>
+            )}
+            {advice && !loadingAdvice && (
+              <div className="bg-[#2a1a20] border border-pink-700 rounded-xl p-3 mb-3">
+                <p className="text-pink-400 text-xs font-medium mb-1">💡 Claudeより</p>
+                <p className="text-gray-300 text-xs leading-relaxed">{advice}</p>
+              </div>
+            )}
+          </>
         ) : (
           <button
             onClick={handleSave}

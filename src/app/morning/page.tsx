@@ -21,6 +21,9 @@ export default function Morning() {
   const [summary, setSummary] = useState('');
   const [showSummary, setShowSummary] = useState(false);
 
+  // 昨日のチェックイン記録（Notionから取得）
+  const [pastMemo, setPastMemo] = useState<{ date: string; userInput: string } | null>(null);
+
   // Notion記録ボタンの状態管理
   const [notionSaving, setNotionSaving] = useState(false); // 送信中
   const [notionSaved, setNotionSaved] = useState(false);   // 記録済み
@@ -63,6 +66,11 @@ export default function Morning() {
       });
       const data = await res.json();
       const summaryText = data.summary || '';
+
+      // Notionから取得した昨日の引き継ぎメモを保存する
+      if (data.pastMemo) {
+        setPastMemo(data.pastMemo);
+      }
 
       // 今日の朝ブリーフィングとして保存
       const today = new Date().toLocaleDateString('ja-JP');
@@ -161,6 +169,18 @@ export default function Morning() {
                 ✓ 今日のブリーフィング完了
               </span>
             </div>
+
+            {/* 昨日の引き継ぎメモ（Notionから取得できた場合のみ表示） */}
+            {pastMemo && (
+              <div className="bg-[#0a2010] border border-green-900 rounded-xl p-3 mb-4">
+                <p className="text-green-500 text-xs font-medium mb-1">
+                  📖 昨日の引き継ぎ（{pastMemo.date}）
+                </p>
+                <p className="text-gray-400 text-xs leading-relaxed">
+                  {pastMemo.userInput.slice(0, 80)}{pastMemo.userInput.length > 80 ? '…' : ''}
+                </p>
+              </div>
+            )}
 
             {/* Claudeのサマリー */}
             <div className="bg-[#0f3020] rounded-2xl p-4 mb-6 space-y-1">

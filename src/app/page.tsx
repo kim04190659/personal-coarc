@@ -21,17 +21,29 @@ export default function CheckIn() {
   const [loading, setLoading] = useState(false);
   // 今朝のブリーフィング完了フラグ（朝に使っていれば緑表示）
   const [morningDone, setMorningDone] = useState(false);
+  // 今日の仕事メモ件数（バッジ表示用）
+  const [memoCount, setMemoCount] = useState(0);
   const router = useRouter();
 
-  // 今日の朝ブリーフィングが完了しているか確認する
+  // 今日の朝ブリーフィングと仕事メモを確認する
   useEffect(() => {
     const today = new Date().toLocaleDateString('ja-JP');
+
+    // 朝ブリーフィング確認
     const saved = localStorage.getItem('morning_brief');
     if (saved) {
       const parsed = JSON.parse(saved);
       if (parsed.date === today && parsed.summary) {
         setMorningDone(true);
       }
+    }
+
+    // 今日の仕事メモ件数を確認
+    const rawMemos = localStorage.getItem('work_memos');
+    if (rawMemos) {
+      const allMemos: Array<{ date: string }> = JSON.parse(rawMemos);
+      const todayCount = allMemos.filter(m => m.date === today).length;
+      setMemoCount(todayCount);
     }
   }, []);
 
@@ -87,7 +99,7 @@ export default function CheckIn() {
         {/* 朝のブリーフィングへのナビゲーション */}
         <button
           onClick={() => router.push('/morning')}
-          className={`w-full mb-6 py-3 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+          className={`w-full mb-3 py-3 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${
             morningDone
               ? 'bg-green-900 text-green-400 border border-green-700'  // 今朝完了済み
               : 'bg-[#0f3020] text-gray-400 border border-gray-700 hover:border-green-600 hover:text-green-400'  // 未完了
@@ -97,6 +109,18 @@ export default function CheckIn() {
           {morningDone
             ? <span className="text-xs bg-green-800 px-2 py-0.5 rounded-full">✓ 完了</span>
             : <span className="text-xs text-gray-600">タップで開く</span>
+          }
+        </button>
+
+        {/* 仕事メモへのナビゲーション */}
+        <button
+          onClick={() => router.push('/work-memo')}
+          className="w-full mb-6 py-3 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 bg-[#1a1530] text-gray-400 border border-gray-700 hover:border-amber-600 hover:text-amber-400"
+        >
+          <span>✏️ 仕事メモ帳</span>
+          {memoCount > 0
+            ? <span className="text-xs bg-amber-900 text-amber-400 px-2 py-0.5 rounded-full">{memoCount}件</span>
+            : <span className="text-xs text-gray-600">気になることを即メモ</span>
           }
         </button>
 
