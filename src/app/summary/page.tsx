@@ -42,13 +42,29 @@ export default function Summary() {
           </span>
         </div>
 
-        {/* Claudeのサマリー */}
-        <div className="bg-[#0f3460] rounded-2xl p-4 mb-6">
-          {/* サマリーテキストをそのまま表示 */}
-          {/* 改行を<br>に変換して読みやすく */}
-          <p className="text-gray-200 text-sm leading-relaxed whitespace-pre-wrap">
-            {summary}
-          </p>
+        {/* Claudeのサマリー（マークダウンを簡易レンダリング） */}
+        <div className="bg-[#0f3460] rounded-2xl p-4 mb-6 text-sm leading-relaxed space-y-2">
+          {summary.split('\n').map((line, i) => {
+            // ## 見出し
+            if (line.startsWith('## ')) {
+              return <p key={i} className="text-blue-300 font-bold text-base">{line.replace('## ', '')}</p>;
+            }
+            // # 見出し
+            if (line.startsWith('# ')) {
+              return <p key={i} className="text-blue-200 font-bold text-base">{line.replace('# ', '')}</p>;
+            }
+            // **太字** を <strong> に変換
+            const parts = line.split(/\*\*(.*?)\*\*/g);
+            return (
+              <p key={i} className="text-gray-200">
+                {parts.map((part, j) =>
+                  j % 2 === 1
+                    ? <strong key={j} className="text-white">{part}</strong>
+                    : part
+                )}
+              </p>
+            );
+          })}
         </div>
 
         {/* 家族3人のカード（視覚的なリマインダー） */}
