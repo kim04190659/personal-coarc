@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 // 5つの所属コンテキスト
@@ -19,7 +19,21 @@ export default function CheckIn() {
   const [input, setInput] = useState('');
   // 送信中フラグ（ボタンの二重クリック防止）
   const [loading, setLoading] = useState(false);
+  // 今朝のブリーフィング完了フラグ（朝に使っていれば緑表示）
+  const [morningDone, setMorningDone] = useState(false);
   const router = useRouter();
+
+  // 今日の朝ブリーフィングが完了しているか確認する
+  useEffect(() => {
+    const today = new Date().toLocaleDateString('ja-JP');
+    const saved = localStorage.getItem('morning_brief');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (parsed.date === today && parsed.summary) {
+        setMorningDone(true);
+      }
+    }
+  }, []);
 
   // 「家族モードに切り替える」ボタンを押したとき
   const handleSubmit = async () => {
@@ -52,6 +66,22 @@ export default function CheckIn() {
   return (
     <main className="min-h-screen bg-[#1a1a2e] flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
+
+        {/* 朝のブリーフィングへのナビゲーション */}
+        <button
+          onClick={() => router.push('/morning')}
+          className={`w-full mb-6 py-3 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+            morningDone
+              ? 'bg-green-900 text-green-400 border border-green-700'  // 今朝完了済み
+              : 'bg-[#0f3020] text-gray-400 border border-gray-700 hover:border-green-600 hover:text-green-400'  // 未完了
+          }`}
+        >
+          <span>🌅 朝のブリーフィング</span>
+          {morningDone
+            ? <span className="text-xs bg-green-800 px-2 py-0.5 rounded-full">✓ 完了</span>
+            : <span className="text-xs text-gray-600">タップで開く</span>
+          }
+        </button>
 
         {/* ヘッダー */}
         <div className="text-center mb-8">
