@@ -131,6 +131,14 @@ export default function CheckIn() {
         >
           {loading ? '切り替え中...' : '家族モードに切り替える →'}
         </button>
+
+        {/* 履歴リンク */}
+        <button
+          onClick={() => router.push('/history')}
+          className="w-full text-gray-600 text-xs mt-4 hover:text-gray-400 transition-colors"
+        >
+          🗓 チェックイン履歴を見る
+        </button>
       </div>
     </main>
   );
